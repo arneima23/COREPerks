@@ -1,0 +1,149 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CorePerks Concierge Chatbot</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f5f7fa;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    header {
+      background-color: #003366;
+      color: white;
+      padding: 1rem;
+      text-align: center;
+    }
+    #chatbox {
+      flex: 1;
+      padding: 1rem;
+      overflow-y: auto;
+      background-color: #ffffff;
+    }
+    .message {
+      margin: 0.5rem 0;
+      padding: 0.75rem;
+      border-radius: 8px;
+      max-width: 80%;
+    }
+    .user {
+      background-color: #e0f7fa;
+      align-self: flex-end;
+    }
+    .bot {
+      background-color: #e8eaf6;
+      align-self: flex-start;
+    }
+    #inputArea {
+      display: flex;
+      padding: 1rem;
+      background-color: #f0f0f0;
+    }
+    #userInput {
+      flex: 1;
+      padding: 0.5rem;
+      font-size: 1rem;
+    }
+    #sendBtn {
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      background-color: #003366;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    #loading {
+      display: none;
+      font-style: italic;
+      color: #666;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>CorePerks Concierge Chatbot</h1>
+  </header>
+  <div id="chatbox"></div>
+  <div id="loading">Thinking...</div>
+  <div id="inputArea">
+    <input type="text" id="userInput" placeholder="Ask me about CorePerks..." />
+    <button id="sendBtn">Send</button>
+  </div>
+
+  <script>
+    const chatbox = document.getElementById("chatbox");
+    const userInput = document.getElementById("userInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const loading = document.getElementById("loading");
+
+    const apiKey = "YOUR_OPENAI_API_KEY"; // Replace with your actual API key
+    const endpoint = "https://api.openai.com/v1/chat/completions";
+    const model = "gpt-3.5-turbo";
+
+    let messages = [
+      {
+        role: "system",
+        content: "You are a helpful concierge assistant for CorePerks. Answer questions about vendors, perks, and services from coreperks.com. You can also answer general questions."
+      }
+    ];
+
+    function addMessage(content, sender) {
+      const msg = document.createElement("div");
+      msg.className = "message " + sender;
+      msg.textContent = content;
+      chatbox.appendChild(msg);
+      chatbox.scrollTop = chatbox.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const input = userInput.value.trim();
+      if (!input) return;
+
+      addMessage(input, "user");
+      userInput.value = "";
+      loading.style.display = "block";
+
+      messages.push({ role: "user", content: input });
+
+      // Limit to last 5 messages + system prompt
+      const recentMessages = [messages[0], ...messages.slice(-5)];
+
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: recentMessages
+          })
+        });
+
+        const data = await response.json();
+        const reply = data.choices[0].message.content;
+        addMessage(reply, "bot");
+        messages.push({ role: "assistant", content: reply });
+      } catch (error) {
+        addMessage("Sorry, something went wrong.", "bot");
+      } finally {
+        loading.style.display = "none";
+      }
+    }
+
+    sendBtn.addEventListener("click", sendMessage);
+    userInput.addEventListener("keypress", function(e) {
+      if (e.key === "Enter") sendMessage();
+    });
+  </script>
+</body>
+</html>
